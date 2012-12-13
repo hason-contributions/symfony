@@ -65,6 +65,16 @@
     </xsd:complexType>
 
     <xsd:complexType name="router">
+        <xsd:all>
+            <xsd:element name="resource" minOccurs="0" maxOccurs="1">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:any namespace="##targetNamespace" minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:all>
+
         <xsd:attribute name="resource" type="xsd:string" />
         <xsd:attribute name="type" type="xsd:string" />
         <xsd:attribute name="http-port" type="xsd:string" />

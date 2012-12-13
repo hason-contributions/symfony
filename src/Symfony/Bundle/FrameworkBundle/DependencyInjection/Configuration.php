@@ -154,7 +154,7 @@ class Configuration implements ConfigurationInterface
                     ->info('router configuration')
                     ->canBeUnset()
                     ->children()
-                        ->scalarNode('resource')->isRequired()->end()
+                        ->variableNode('resource')->isRequired()->end()
                         ->scalarNode('type')->end()
                         ->scalarNode('http_port')->defaultValue(80)->end()
                         ->scalarNode('https_port')->defaultValue(443)->end()

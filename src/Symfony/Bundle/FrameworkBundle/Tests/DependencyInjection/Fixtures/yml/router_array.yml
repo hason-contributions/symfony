@@ -1,0 +1,12 @@
+framework:
+    secret: s3cr3t
+    router:
+        resource:
+            _import:
+                resource: %kernel.root_dir%/config/routing.xml
+            blog_show:
+                pattern: /blog/{slug}
+                defaults: { _controller: "MyBundle:Blog:show" }
+                hostname_pattern: "{locale}.example.com"
+                requirements: { _method: GET, locale: \\w+ }
+                options: { compiler_class: RouteCompiler }

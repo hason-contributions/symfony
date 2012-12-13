@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:framework="http://symfony.com/schema/dic/symfony"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd
+                        http://symfony.com/schema/dic/symfony http://symfony.com/schema/dic/symfony/symfony-1.0.xsd">
+
+    <framework:config secret="s3cr3t">
+        <framework:router>
+            <framework:resource>
+                <framework:route resource="%kernel.root_dir%/config/routing.xml" />
+                <framework:route id="blog_show" pattern="/blog/{slug}" hostname_pattern="{locale}.example.com">
+                    <framework:default _controller="MyBundle:Blog:show" />
+                    <framework:requirement _method="GET" locale="\w+" />
+                    <framework:option compiler_class="RouteCompiler" />
+                </framework:route>
+            </framework:resource>
+        </framework:router>
+    </framework:config>
+</container>

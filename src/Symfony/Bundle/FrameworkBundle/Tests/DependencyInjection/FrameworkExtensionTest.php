@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Tests\TestCase;
 use Symfony\Bundle\FrameworkBundle\DependencyInjection\FrameworkExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
+use Symfony\Component\Routing\Loader\ArrayLoader;
 
 abstract class FrameworkExtensionTest extends TestCase
 {
@@ -70,6 +71,18 @@ abstract class FrameworkExtensionTest extends TestCase
         $this->assertEquals($container->getParameter('kernel.root_dir').'/config/routing.xml', $container->getParameter('router.resource'), '->registerRouterConfiguration() sets routing resource');
         $this->assertEquals('%router.resource%', $arguments[1], '->registerRouterConfiguration() sets routing resource');
         $this->assertEquals('xml', $arguments[2]['resource_type'], '->registerRouterConfiguration() sets routing resource type');
+    }
+
+    public function testRouterArrayResource()
+    {
+        $container = $this->createContainerFromFile('router_array');
+
+        $this->assertTrue($container->has('router'));
+
+        $resource = $container->getParameter('router.resource');
+        $resource = ArrayLoader::processConfiguration(ArrayLoader::getConfigurationBuilder(), $resource);
+        $this->assertCount(2, $resource);
+        $this->assertArrayHasKey('blog_show', $resource);
     }
 
     /**
