@@ -40,6 +40,20 @@ abstract class IntlGlobals
     const U_PARSE_ERROR = 9;
 
     /**
+     * Indicates that
+     *
+     * @var integer
+     */
+    const U_PATTERN_SYNTAX_EROR = 65799;
+
+    /**
+     * Indicates that
+     *
+     * @var integer
+     */
+    const U_ARGUMENT_TYPE_MISMATCH = 65804;
+
+    /**
      * All known error codes
      *
      * @var array
@@ -48,6 +62,8 @@ abstract class IntlGlobals
         self::U_ZERO_ERROR => 'U_ZERO_ERROR',
         self::U_ILLEGAL_ARGUMENT_ERROR => 'U_ILLEGAL_ARGUMENT_ERROR',
         self::U_PARSE_ERROR => 'U_PARSE_ERROR',
+        self::U_PATTERN_SYNTAX_ERROR => 'U_PATTERN_SYNTAX_ERROR',
+        self::U_ARGUMENT_TYPE_MISMATCH => 'U_ARGUMENT_TYPE_MISMATCH',
     );
 
     /**
