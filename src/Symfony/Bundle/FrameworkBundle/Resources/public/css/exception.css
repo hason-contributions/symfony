@@ -111,3 +111,32 @@
     font-size: 12px;
     font-family: monospace;
 }
+
+.sf-reset .parameters {
+    border: 1px solid #D3D3D3;
+    padding: 10px;
+    overflow: auto;
+    margin: 10px 0 20px;
+    width: 100%;
+}
+
+.sf-reset .parameters th {
+    vertical-align: top;
+    font-weight: bold;
+}
+
+.sf-reset .parameters pre.sf-dump {
+    background-color: #f1f7e2;
+}
+
+
+
+.sf-reset .tag {
+    display: inline-block;
+    background-color: #aacd4e;
+    border-radius: 6px;
+    padding: 4px;
+    color: #fff;
+    margin-right: 2px;
+    font-size: 11px;
+}

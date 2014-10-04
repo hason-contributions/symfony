@@ -127,11 +127,17 @@
             <tag name="monolog.logger" channel="request" />
             <argument>%twig.exception_listener.controller%</argument>
             <argument type="service" id="logger" on-invalid="null" />
+            <argument type="service" id="exception_processor" on-invalid="ignore" />
         </service>
 
         <service id="twig.controller.exception" class="%twig.controller.exception.class%">
             <argument type="service" id="twig" />
             <argument>%kernel.debug%</argument>
+        </service>
+
+        <service id="twig.exception_flattener" class="Symfony\Bridge\Twig\Debug\TwigFlattener" public="false">
+            <tag name="exception.flattener" />
+            <argument type="service" id="twig" />
         </service>
     </services>
 </container>

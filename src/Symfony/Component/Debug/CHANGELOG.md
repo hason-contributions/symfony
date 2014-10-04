@@ -7,6 +7,7 @@ CHANGELOG
 * generalized ErrorHandler and ExceptionHandler,
   with some new methods and others deprecated
 * enhanced error messages for uncaught exceptions
+* added ExceptionFlattener
 
 2.5.0
 -----

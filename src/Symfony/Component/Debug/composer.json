@@ -21,11 +21,13 @@
     },
     "require-dev": {
         "symfony/http-kernel": "~2.1",
-        "symfony/http-foundation": "~2.1"
+        "symfony/http-foundation": "~2.1",
+        "symfony/var-dumper": "~2.6"
     },
     "suggest": {
         "symfony/http-foundation": "",
-        "symfony/http-kernel": ""
+        "symfony/http-kernel": "",
+        "symfony/var-dumper": ""
     },
     "autoload": {
         "psr-0": { "Symfony\\Component\\Debug\\": "" }

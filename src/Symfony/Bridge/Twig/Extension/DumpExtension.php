@@ -13,6 +13,7 @@ namespace Symfony\Bridge\Twig\Extension;
 
 use Symfony\Bridge\Twig\TokenParser\DumpTokenParser;
 use Symfony\Component\VarDumper\Cloner\ClonerInterface;
+use Symfony\Component\VarDumper\Cloner\Data;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
 /**
@@ -72,7 +73,7 @@ class DumpExtension extends \Twig_Extension
         });
 
         foreach ($vars as $value) {
-            $dumper->dump($this->cloner->cloneVar($value));
+            $dumper->dump($value instanceof Data ? $value : $this->cloner->cloneVar($value));
         }
 
         return $html;

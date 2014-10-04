@@ -11,6 +11,10 @@
 
 namespace Symfony\Bridge\Twig\Extension;
 
+use Symfony\Bridge\Twig\Debug\Highlighter;
+use Symfony\Bridge\Twig\Debug\PHPHighlighter;
+use Symfony\Bridge\Twig\Debug\TwigHighlighter;
+
 if (!defined('ENT_SUBSTITUTE')) {
     define('ENT_SUBSTITUTE', 8);
 }
@@ -25,6 +29,7 @@ class CodeExtension extends \Twig_Extension
     private $fileLinkFormat;
     private $rootDir;
     private $charset;
+    private $highlighters = array();
 
     /**
      * Constructor.
@@ -86,7 +91,7 @@ class CodeExtension extends \Twig_Extension
      *
      * @return string
      */
-    public function formatArgs($args)
+    public function formatArgs($args, $compact = false)
     {
         $result = array();
         foreach ($args as $key => $item) {
@@ -94,10 +99,12 @@ class CodeExtension extends \Twig_Extension
                 $parts = explode('\\', $item[1]);
                 $short = array_pop($parts);
                 $formattedValue = sprintf("<em>object</em>(<abbr title=\"%s\">%s</abbr>)", $item[1], $short);
+            } elseif ('array' === $item[0] && $compact) {
+                $formattedValue = sprintf("<em>array</em>:%d", is_array($item[1]) ? count($item[1]) : 0);
             } elseif ('array' === $item[0]) {
                 $formattedValue = sprintf("<em>array</em>(%s)", is_array($item[1]) ? $this->formatArgs($item[1]) : $item[1]);
             } elseif ('string' === $item[0]) {
-                $formattedValue = sprintf("'%s'", htmlspecialchars($item[1], ENT_QUOTES, $this->charset));
+                $formattedValue = sprintf("'%s'", htmlspecialchars($compact ? substr($item[1], 0, 30) : $item[1], ENT_QUOTES, $this->charset));
             } elseif ('null' === $item[0]) {
                 $formattedValue = '<em>null</em>';
             } elseif ('boolean' === $item[0]) {
@@ -129,28 +136,30 @@ class CodeExtension extends \Twig_Extension
     /**
      * Returns an excerpt of a code file around the given line number.
      *
-     * @param string $file A file path
-     * @param int    $line The selected line number
+     * @param string $file  A file path
+     * @param int    $line  The selected line number
+     * @param int    $count
      *
      * @return string An HTML string
      */
-    public function fileExcerpt($file, $line)
+    public function fileExcerpt($file, $line, $count = 3)
     {
-        if (is_readable($file)) {
-            // highlight_file could throw warnings
-            // see https://bugs.php.net/bug.php?id=25725
-            $code = @highlight_file($file, true);
-            // remove main code/span tags
-            $code = preg_replace('#^<code.*?>\s*<span.*?>(.*)</span>\s*</code>#s', '\\1', $code);
-            $content = preg_split('#<br />#', $code);
-
-            $lines = array();
-            for ($i = max($line - 3, 1), $max = min($line + 3, count($content)); $i <= $max; $i++) {
-                $lines[] = '<li'.($i == $line ? ' class="selected"' : '').'><code>'.self::fixCodeMarkup($content[$i - 1]).'</code></li>';
-            }
-
-            return '<ol start="'.max($line - 3, 1).'">'.implode("\n", $lines).'</ol>';
+        if (!is_readable($file)) {
+            return;
         }
+
+        foreach ($this->highlighters as $highlighter) {
+            if ($highlighter->supports($file)) {
+                break;
+            }
+            unset($highlighter);
+        }
+
+        if (!isset($highlighter)) {
+            $highlighter = new PHPHighlighter();
+        }
+
+        return $highlighter->highlight(file_get_contents($file), $line, $count);
     }
 
     /**
@@ -208,6 +217,16 @@ class CodeExtension extends \Twig_Extension
         return preg_replace_callback('/in ("|&quot;)?(.+?)\1(?: +(?:on|at))? +line (\d+)/s', function ($match) use ($that) {
             return 'in '.$that->formatFile($match[2], $match[3]);
         }, $text);
+    }
+
+    /**
+     * Adds the
+     *
+     * @param Highlighter $highlighter A highlighter
+     */
+    public function addHighlighter(Highlighter $highlighter)
+    {
+        array_unshift($this->highlighters, $highlighter);
     }
 
     public function getName()
