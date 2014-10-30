@@ -23,6 +23,10 @@
         </service>
 
         <service id="var_dumper.cloner" class="Symfony\Component\VarDumper\Cloner\VarCloner" />
+
+        <service id="exception_flattener" class="Symfony\Component\Debug\ExceptionFlattener">
+            <argument type="collection" />
+        </service>
     </services>
 
 </container>
