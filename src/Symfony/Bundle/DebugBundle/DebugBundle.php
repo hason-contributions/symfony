@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\DebugBundle;
 
+use Symfony\Bundle\DebugBundle\DependencyInjection\Compiler\AddExceptionFlattenerPass;
 use Symfony\Bundle\DebugBundle\DependencyInjection\Compiler\DumpDataCollectorPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -49,6 +50,7 @@ class DebugBundle extends Bundle
     {
         parent::build($container);
 
+        $container->addCompilerPass(new AddExceptionFlattenerPass());
         $container->addCompilerPass(new DumpDataCollectorPass());
     }
 }
