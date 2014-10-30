@@ -211,6 +211,11 @@ class FlattenException extends LegacyFlattenException
         }
     }
 
+    public function setRawTrace($trace)
+    {
+        $this->trace = $trace;
+    }
+
     private function flattenArgs($args, $level = 0, &$count = 0)
     {
         $result = array();
