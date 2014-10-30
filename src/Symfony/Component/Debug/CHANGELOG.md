@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+2.7.0
+-----
+
+* added ExceptionFlattener
+
 2.6.0
 -----
 
