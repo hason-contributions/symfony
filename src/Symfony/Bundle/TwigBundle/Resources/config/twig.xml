@@ -139,5 +139,10 @@
             <argument type="service" id="http_kernel" />
             <argument>%twig.exception_listener.controller%</argument>
         </service>
+
+        <service id="twig.exception_processor" class="Symfony\Bridge\Twig\Debug\TwigFlattenExceptionProcessor" public="false">
+            <tag name="exception.processor" />
+            <argument type="service" id="twig.loader" />
+        </service>
     </services>
 </container>
