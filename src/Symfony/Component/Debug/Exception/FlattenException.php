@@ -72,6 +72,7 @@ class FlattenException extends LegacyFlattenException
     private $headers;
     private $file;
     private $line;
+    private $extras = array();
 
     public static function create(\Exception $exception, $statusCode = null, array $headers = array())
     {
@@ -108,7 +109,7 @@ class FlattenException extends LegacyFlattenException
             $exceptions[] = array(
                 'message' => $exception->getMessage(),
                 'class' => $exception->getClass(),
-                'trace' => $exception->getTrace(),
+                'trace' => $exception->getTrace()->toArray(),
             );
         }
 
@@ -206,6 +207,11 @@ class FlattenException extends LegacyFlattenException
         return $exceptions;
     }
 
+    /**
+     * Returns exception trace
+     *
+     * @return Trace
+     */
     public function getTrace()
     {
         return $this->trace;
@@ -218,8 +224,13 @@ class FlattenException extends LegacyFlattenException
 
     public function setTrace($trace, $file, $line)
     {
-        $this->trace = array();
-        $this->trace[] = array(
+        if ($trace instanceof Trace) {
+            $this->trace = $trace;
+
+            return;
+        }
+
+        $this->trace = new Trace(array(-1 => array(
             'namespace' => '',
             'short_class' => '',
             'class' => '',
@@ -228,8 +239,9 @@ class FlattenException extends LegacyFlattenException
             'file' => $file,
             'line' => $line,
             'args' => array(),
-        );
-        foreach ($trace as $entry) {
+        )));
+
+        foreach ($trace as $key => $entry) {
             $class = '';
             $namespace = '';
             if (isset($entry['class'])) {
@@ -238,7 +250,7 @@ class FlattenException extends LegacyFlattenException
                 $namespace = implode('\\', $parts);
             }
 
-            $this->trace[] = array(
+            $this->trace[$key] = array(
                 'namespace' => $namespace,
                 'short_class' => $class,
                 'class' => isset($entry['class']) ? $entry['class'] : '',
@@ -249,6 +261,40 @@ class FlattenException extends LegacyFlattenException
                 'args' => isset($entry['args']) ? $this->flattenArgs($entry['args']) : array(),
             );
         }
+    }
+
+    /**
+     * Returns all extras.
+     *
+     * @return array
+     */
+    public function getExtras()
+    {
+        return $this->extras;
+    }
+
+    /**
+     * Returns an extra value.
+     *
+     * @param string $name    The name of the extra
+     * @param mixed  $default The value to return if the extra doesn't exist
+     *
+     * @return mixed
+     */
+    public function getExtra($name, $default = null)
+    {
+        return array_key_exists($name, $this->extras) ? $this->extras[$name] : $default;
+    }
+
+    /**
+     * Sets an extra value.
+     *
+     * @param string $name  The name of the extra
+     * @param mixed  $value The value
+     */
+    public function setExtra($name, $value)
+    {
+        $this->extras[$name] = $value;
     }
 
     private function flattenArgs($args, $level = 0, &$count = 0)

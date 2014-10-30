@@ -8,6 +8,7 @@ CHANGELOG
 * added ZTS support to symfony_debug extension
 * added symfony_debug_backtrace() to symfony_debug extension
   to track the backtrace of fatal errors
+* added ExceptionFlattener
 
 2.6.0
 -----

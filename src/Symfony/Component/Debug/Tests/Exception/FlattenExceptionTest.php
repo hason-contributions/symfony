@@ -161,7 +161,7 @@ class FlattenExceptionTest extends \PHPUnit_Framework_TestCase
             array(
                 'message' => 'test',
                 'class' => 'Exception',
-                'trace' => array(array(
+                'trace' => array(-1 => array(
                     'namespace' => '', 'short_class' => '', 'class' => '', 'type' => '', 'function' => '', 'file' => 'foo.php', 'line' => 123,
                     'args' => array(),
                 )),
