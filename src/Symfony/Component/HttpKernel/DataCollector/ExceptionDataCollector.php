@@ -39,8 +39,13 @@ class ExceptionDataCollector extends DataCollector
             return;
         }
 
+        $flattenException = $request->attributes->get('exception');
+        if (!$flattenException instanceof FlattenException) {
+            $flattenException = null === $this->flattener ? FlattenException::create($exception) : $this->flattener->flatten($exception);
+        }
+
         $this->data = array(
-            'exception' => null === $this->flattener ? FlattenException::create($exception) : $this->flattener->flatten($exception),
+            'exception' => $flattenException,
         );
     }
 

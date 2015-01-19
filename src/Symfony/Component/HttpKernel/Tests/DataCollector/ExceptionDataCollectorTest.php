@@ -48,4 +48,18 @@ class ExceptionDataCollectorTest extends \PHPUnit_Framework_TestCase
             array(new ExceptionDataCollector($flattener), $e, $flattener->flatten($e)),
         );
     }
+
+    public function testUseFlattenedExceptionFromRequest()
+    {
+        $exception = new \Exception('foo', 500);
+        $flatenned = FlattenException::create($exception);
+        $collector = new ExceptionDataCollector();
+
+        $request = new Request();
+        $request->attributes->set('exception', $flatenned);
+
+        $collector->collect($request, new Response, $exception);
+
+        $this->assertSame($flatenned, $collector->getException());
+    }
 }
