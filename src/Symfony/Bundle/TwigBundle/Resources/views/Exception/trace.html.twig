@@ -1,10 +1,10 @@
 {% if trace.function %}
     at
     <strong>
-        <abbr title="{{ trace.class }}">{{ trace.short_class }}</abbr>
+        <abbr title="{{ trace.class }}">{{ trace.short_class|length > 30 ? trace.short_class[0:30]~'...' : trace.short_class }}</abbr>
         {{ trace.type ~ trace.function }}
     </strong>
-    ({{ trace.args|format_args }})
+    ({{ trace.args|format_args(exception|default) }})
 {% endif %}
 
 {% if trace.file is defined and trace.file and trace.line is defined and trace.line %}

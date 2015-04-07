@@ -11,6 +11,12 @@
 
 namespace Symfony\Bridge\Twig\Extension;
 
+use Symfony\Bridge\Twig\Debug\ArgumentsHtmlDumper;
+use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\VarDumper\Cloner\Data;
+use Symfony\Component\VarDumper\Cloner\Stub;
+use Symfony\Component\VarDumper\Dumper\HtmlDumper;
+
 /**
  * Twig extension relate to PHP code and used by the profiler and the default exception templates.
  *
@@ -46,6 +52,7 @@ class CodeExtension extends \Twig_Extension
             new \Twig_SimpleFilter('abbr_method', array($this, 'abbrMethod'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('format_args', array($this, 'formatArgs'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('format_args_as_text', array($this, 'formatArgsAsText')),
+            new \Twig_SimpleFilter('list_args', array($this, 'listArgs'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('file_excerpt', array($this, 'fileExcerpt'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('format_file', array($this, 'formatFile'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('format_file_from_text', array($this, 'formatFileFromText'), array('is_safe' => array('html'))),
@@ -82,32 +89,42 @@ class CodeExtension extends \Twig_Extension
      *
      * @return string
      */
-    public function formatArgs($args)
+    public function formatArgs($args, $exception = null)
     {
         $result = array();
         foreach ($args as $key => $item) {
-            if ('object' === $item[0]) {
-                $parts = explode('\\', $item[1]);
-                $short = array_pop($parts);
-                $formattedValue = sprintf('<em>object</em>(<abbr title="%s">%s</abbr>)', $item[1], $short);
-            } elseif ('array' === $item[0]) {
-                $formattedValue = sprintf('<em>array</em>(%s)', is_array($item[1]) ? $this->formatArgs($item[1]) : $item[1]);
-            } elseif ('string' === $item[0]) {
-                $formattedValue = sprintf("'%s'", htmlspecialchars($item[1], ENT_QUOTES, $this->charset));
-            } elseif ('null' === $item[0]) {
-                $formattedValue = '<em>null</em>';
-            } elseif ('boolean' === $item[0]) {
-                $formattedValue = '<em>'.strtolower(var_export($item[1], true)).'</em>';
-            } elseif ('resource' === $item[0]) {
-                $formattedValue = '<em>resource</em>';
-            } else {
-                $formattedValue = str_replace("\n", '', var_export(htmlspecialchars((string) $item[1], ENT_QUOTES, $this->charset), true));
-            }
+            $formattedValue = $this->dumpVariable($item, $exception instanceof FlattenException ? true : false, $exception);
+            $value = is_int($key) ? $formattedValue : sprintf('$%s = %s', $key, $formattedValue);
 
-            $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
+            if ('link' === $item[0]) {
+                $result[] = sprintf('<a href="#" class="sf-arg-'.$item[1].'">%s</a>', $value);
+            } else {
+                $result[] = $value;
+            }
         }
 
         return implode(', ', $result);
+    }
+
+    public function listArgs($arguments)
+    {
+        if ($arguments instanceof Data) {
+            $dump = fopen('php://memory', 'r+b');
+            $dumper = new ArgumentsHtmlDumper($dump);
+            $dumper->dump($arguments);
+            rewind($dump);
+
+            return sprintf('<div><a name="sf-arg-%s"></a>%s</div>', 1, stream_get_contents($dump));
+        }
+
+        $result = '';
+        if (is_array($arguments)) {
+            foreach ($arguments[1] as $key => $item) {
+                $result .= '<div id="'.$key.'">'.$this->dumpVariable($item, false).'</div>';
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -117,9 +134,9 @@ class CodeExtension extends \Twig_Extension
      *
      * @return string
      */
-    public function formatArgsAsText($args)
+    public function formatArgsAsText($args, $exception = null)
     {
-        return strip_tags($this->formatArgs($args));
+        return strip_tags($this->formatArgs($args, $exception));
     }
 
     /**
@@ -237,5 +254,72 @@ class CodeExtension extends \Twig_Extension
         }
 
         return $line;
+    }
+
+    private function dumpVariable($item, $compact = true, $exception = null)
+    {
+        switch ($item[0]) {
+            case 'object':
+                $parts = explode('\\', $item[1]);
+                $short = array_pop($parts);
+                return sprintf('<em>object</em>(<abbr title="%s">%s</abbr>)', $item[1], $short);
+            case 'array':
+                $result = array();
+                if ($compact) {
+                    $info = count((array) $item[1]);
+                } else {
+                    foreach ((array)$item[1] as $key => $value) {
+                        $formattedValue = is_array($value) ? $this->dumpVariable($value, $compact, $exception) : $value;
+                        $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
+                    }
+
+                    $info = implode(', ', $result);
+                }
+
+                return sprintf('<em>array</em>(%s)', $info);
+            case 'string':
+                return sprintf("'%s'", htmlspecialchars((string) $item[1], ENT_QUOTES, $this->charset));
+            case 'number':
+                return $item[1];
+            case 'null':
+                return '<em>null</em>';
+            case 'boolean':
+                return '<em>'.strtolower(var_export($item[1], true)).'</em>';
+            case 'resource':
+                return '<em>resource</em>';
+            case 'link':
+                if (!$exception instanceof FlattenException) {
+                    return '<em>_</em>';
+                }
+
+                $arguments = $exception->getExtra('trace_arguments');
+                if ($arguments instanceof Data && ($data = $arguments->getRawData()) && array_key_exists($item[1], $data[1])) {
+                    $value = $data[1][$item[1]];
+                    $type = gettype($value);
+
+                    if (!$value instanceof Stub) {
+                        return $this->dumpVariable(array(strtolower($type), $value), $compact, $exception);
+                    }
+
+                    switch ($value->type) {
+                        case Stub::TYPE_OBJECT:
+                            return $this->dumpVariable(array('object', $value->class), $compact, $exception);
+                        case Stub::TYPE_STRING:
+                            return $this->dumpVariable(array('string', $value->value), $compact, $exception);
+                        case Stub::TYPE_ARRAY:
+                            return $this->dumpVariable(array('array', $value->value), $compact, $exception);
+                        case Stub::TYPE_RESOURCE:
+                            return $this->dumpVariable(array('resource', $value->value), $compact, $exception);
+                        default:
+                            return '<em>_</em>';
+                    }
+                } elseif (is_array($arguments) && isset($arguments[1][$item[1]])) {
+                    return $this->dumpVariable($arguments[1][$item[1]], $compact, $exception);
+                }
+
+                return '<em>_</em>';
+            default:
+                return str_replace("\n", '', var_export(htmlspecialchars((string) $item[1], ENT_QUOTES, $this->charset), true));
+        }
     }
 }

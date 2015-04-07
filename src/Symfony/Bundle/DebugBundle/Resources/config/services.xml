@@ -39,6 +39,10 @@
             <tag name="exception.processor" />
         </service>
 
+        <service id="debug.arguments_processor" class="Symfony\Component\Debug\ArgumentsFlattenExceptionProcessor" public="false">
+            <tag name="exception.processor" />
+            <argument type="service" id="var_dumper.cloner" />
+        </service>
     </services>
 
 </container>
