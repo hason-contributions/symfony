@@ -12,6 +12,8 @@
 namespace Symfony\Bridge\Twig\Extension;
 
 use Symfony\Bridge\Twig\Debug\ArgumentsHtmlDumper;
+use Symfony\Bridge\Twig\Debug\PHPHighlighter;
+use Symfony\Bridge\Twig\Debug\TwigHighlighter;
 use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\VarDumper\Cloner\Data;
 use Symfony\Component\VarDumper\Cloner\Stub;
@@ -27,6 +29,7 @@ class CodeExtension extends \Twig_Extension
     private $fileLinkFormat;
     private $rootDir;
     private $charset;
+    private $highlighters = array();
 
     /**
      * Constructor.
@@ -147,23 +150,19 @@ class CodeExtension extends \Twig_Extension
      *
      * @return string An HTML string
      */
-    public function fileExcerpt($file, $line)
+    public function fileExcerpt($file, $line, $count = 3, $type = null)
     {
-        if (is_readable($file)) {
-            // highlight_file could throw warnings
-            // see https://bugs.php.net/bug.php?id=25725
-            $code = @highlight_file($file, true);
-            // remove main code/span tags
-            $code = preg_replace('#^<code.*?>\s*<span.*?>(.*)</span>\s*</code>#s', '\\1', $code);
-            $content = preg_split('#<br />#', $code);
-
-            $lines = array();
-            for ($i = max($line - 3, 1), $max = min($line + 3, count($content)); $i <= $max; ++$i) {
-                $lines[] = '<li'.($i == $line ? ' class="selected"' : '').'><code>'.self::fixCodeMarkup($content[$i - 1]).'</code></li>';
-            }
-
-            return '<ol start="'.max($line - 3, 1).'">'.implode("\n", $lines).'</ol>';
+        if (!is_readable($file)) {
+            return;
         }
+
+        if (isset($this->highlighters[$type])) {
+            $highlighter = $this->highlighters[$type];
+        } else {
+            $highlighter = 'twig' === $type ? new TwigHighlighter() : new PHPHighlighter();
+        }
+
+        return $highlighter->highlight(file_get_contents($file), $line, $count);
     }
 
     /**
