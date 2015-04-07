@@ -14,6 +14,8 @@ namespace Symfony\Component\Debug;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\Debug\Exception\OutOfMemoryException;
+use Symfony\Component\VarDumper\Cloner\Data;
+use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
 /**
  * ExceptionHandler converts an exception to a Response object.
@@ -399,26 +401,49 @@ EOF;
     {
         $result = array();
         foreach ($args as $key => $item) {
-            if ('object' === $item[0]) {
-                $formattedValue = sprintf('<em>object</em>(%s)', $this->formatClass($item[1]));
-            } elseif ('array' === $item[0]) {
-                $formattedValue = sprintf('<em>array</em>(%s)', is_array($item[1]) ? $this->formatArgs($item[1]) : $item[1]);
-            } elseif ('string' === $item[0]) {
-                $formattedValue = sprintf("'%s'", $this->escapeHtml($item[1]));
-            } elseif ('null' === $item[0]) {
-                $formattedValue = '<em>null</em>';
-            } elseif ('boolean' === $item[0]) {
-                $formattedValue = '<em>'.strtolower(var_export($item[1], true)).'</em>';
-            } elseif ('resource' === $item[0]) {
-                $formattedValue = '<em>resource</em>';
-            } else {
-                $formattedValue = str_replace("\n", '', var_export($this->escapeHtml((string) $item[1]), true));
+            if (is_array($item)) {
+                $formattedValue = $this->dumpVariable($item);
+            } elseif ($item instanceof \stdClass) {
+                $formattedValue = $this->dumpVariable(array_values((array) $item));
+            } elseif ($item instanceof Data) {
+                $dump = fopen('php://memory', 'r+b');
+                $dumper = new HtmlDumper($dump);
+                $dumper->dump($item);
+                rewind($dump);
+
+                $formattedValue = stream_get_contents($dump);
             }
 
-            $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
+            $result[] = is_int($key) ? $formattedValue : sprintf('$%s = %s', $key, $formattedValue);
         }
 
         return implode(', ', $result);
+    }
+
+    private function dumpVariable($item)
+    {
+        switch ($item[0]) {
+            case 'object':
+                return sprintf('<em>object</em>(%s)', $this->formatClass($item[1]));
+            case 'array':
+                $result = array();
+                foreach ((array) $item[1] as $key => $value) {
+                    $formattedValue = is_array($value) ? $this->dumpVariable($value) : $value;
+                    $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
+                }
+
+                return sprintf('<em>array</em>(%s)', implode(', ', $result));
+            case 'string':
+                return sprintf("'%s'", $this->escapeHtml($item[1]));
+            case 'null':
+                return '<em>null</em>';
+            case 'boolean':
+                return '<em>'.strtolower(var_export($item[1], true)).'</em>';
+            case 'resource':
+                return '<em>resource</em>';
+            default:
+                return str_replace("\n", '', var_export($this->escapeHtml((string) $item[1]), true));
+        }
     }
 
     /**
