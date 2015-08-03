@@ -49,7 +49,7 @@ class PHPHighlighter extends Highlighter
     /**
      * {@inheritdoc}
      */
-    public function highlight($code, $line = -1, $count = -1)
+    public function highlight($code, $from = 0, $length = null, $line = null)
     {
         // highlight_file could throw warnings
         // see https://bugs.php.net/bug.php?id=25725
@@ -57,7 +57,7 @@ class PHPHighlighter extends Highlighter
         // remove main code/span tags
         $code = preg_replace('#^<code.*?>\s*<span.*?>(.*)</span>\s*</code>#s', '\\1', $code);
 
-        $code = $this->createLines(preg_split('#<br />#', $code), $line, $count);
+        $code = $this->createLines(preg_split('#<br />#', $code), $from, $length, $line);
 
         $code = str_replace('&nbsp;', ' ', $code);
         $code = str_replace(array_values($this->styles), array_keys($this->styles), $code);

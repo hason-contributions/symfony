@@ -41,7 +41,7 @@ class TwigHighlighter extends Highlighter
     /**
      * {@inheritdoc}
      */
-    public function highlight($code, $line = -1, $count = -1)
+    public function highlight($code, $from = 0, $length = null, $line = null)
     {
         $regex = $this->regex;
         $code = preg_replace_callback($this->regexTags, function ($matches) use ($regex) {
@@ -62,7 +62,7 @@ class TwigHighlighter extends Highlighter
             return '<span class="tag">'.$matches[1].'</span>'.$matches[2].'<span class="tag">'.$matches[3].'</span>';
         }, htmlspecialchars(str_replace(array("\r\n", "\r"), "\n", $code), ENT_NOQUOTES));
 
-        return $this->createLines(explode("\n", $code), $line, $count);
+        return $this->createLines(explode("\n", $code), $from, $length, $line);
     }
 
     /**

@@ -1,7 +1,7 @@
 <div>
     {% spaceless %}
         <span class="toggle-icon">
-        <a href="#" onclick="toggle('data-{{ prefix ~ '-' ~ i }}'); switchIcons('icon-{{ prefix ~ '-' ~ i }}-open', 'icon-{{ prefix ~ '-' ~ i }}-close'); return false;">
+        <a href="#" onclick="toggle('trace-{{ prefix ~ '-' ~ i }}'); switchIcons('icon-{{ prefix ~ '-' ~ i }}-open', 'icon-{{ prefix ~ '-' ~ i }}-close'); return false;">
             <img class="toggle" id="icon-{{ prefix ~ '-' ~ i }}-close" alt="-" src="data:image/gif;base64,R0lGODlhEgASAMQSANft94TG57Hb8GS44ez1+mC24IvK6ePx+Wa44dXs92+942e54o3L6W2844/M6dnu+P/+/l614P///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABIALAAAAAASABIAQAVCoCQBTBOd6Kk4gJhGBCTPxysJb44K0qD/ER/wlxjmisZkMqBEBW5NHrMZmVKvv9hMVsO+hE0EoNAstEYGxG9heIhCADs=" style="display: {{ 0 == i ? 'inline' : 'none' }}" />
             <img class="toggle" id="icon-{{ prefix ~ '-' ~ i }}-open" alt="+" src="data:image/gif;base64,R0lGODlhEgASAMQTANft99/v+Ga44bHb8ITG52S44dXs9+z1+uPx+YvK6WC24G+944/M6W28443L6dnu+Ge54v/+/l614P///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAABMALAAAAAASABIAQAVS4DQBTiOd6LkwgJgeUSzHSDoNaZ4PU6FLgYBA5/vFID/DbylRGiNIZu74I0h1hNsVxbNuUV4d9SsZM2EzWe1qThVzwWFOAFCQFa1RQq6DJB4iIQA7" style="display: {{ 0 == i ? 'none' : 'inline' }}" />
         </a>
@@ -21,20 +21,21 @@
     {{ trace.function ? '<br />' : '' }}
     in {{ trace.file|format_file(trace.line) }}&nbsp;
 {% endif %}
-
+{% dump trace %}
 
     <div id="trace-{{ prefix ~ '-' ~ i }}" style="display: {{ 0 == i ? 'block' : 'none' }}" class="trace">
         {% if trace.file is defined and trace.file and trace.line is defined and trace.line %}
-            <em>{{ trace.file|format_file(trace.line) }}</em>
-            <div class="trace">
-                {{ trace.file|file_excerpt(trace.line) }}
+            <div class="code-block">
+                <div class="meta">{{ trace.file|file_line_count }} lines | {{ trace.file|format_file(trace.line) }}</div>
+                {{ trace.file|file_excerpt(max([trace.line - 4, 0]), 7, trace.line) }}
             </div>
         {% endif %}
 
         {% for code in trace.related_codes|default([]) if code.file.path is defined %}
-            <em>{{ code.file.path|format_file(code.line|default(1), code.file.name|default) }}</em>
-            <div class="trace">
-                {{ code.file.path|file_excerpt(code.line|default(1), type=code.file.type|default) }}
+            <div class="code-block">
+                <div class="meta">{{ code.file.path|file_line_count }} lines | {{ code.file.path|format_file(code.line|default(1), code.file.name|default) }}<div>
+                {% set line = code.line|default(1) %}
+                {{ code.file.path|file_excerpt(max([line - 4, 0]), 7, line, code.file.type|default) }}
             </div>
         {% endfor %}
     </div>

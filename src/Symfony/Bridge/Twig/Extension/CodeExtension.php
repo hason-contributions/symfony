@@ -12,12 +12,12 @@
 namespace Symfony\Bridge\Twig\Extension;
 
 use Symfony\Bridge\Twig\Debug\ArgumentsHtmlDumper;
+use Symfony\Bridge\Twig\Debug\Highlighter;
 use Symfony\Bridge\Twig\Debug\PHPHighlighter;
 use Symfony\Bridge\Twig\Debug\TwigHighlighter;
 use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\VarDumper\Cloner\Data;
 use Symfony\Component\VarDumper\Cloner\Stub;
-use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
 /**
  * Twig extension relate to PHP code and used by the profiler and the default exception templates.
@@ -29,6 +29,9 @@ class CodeExtension extends \Twig_Extension
     private $fileLinkFormat;
     private $rootDir;
     private $charset;
+    /**
+     * @var Highlighter[]
+     */
     private $highlighters = array();
 
     /**
@@ -37,12 +40,14 @@ class CodeExtension extends \Twig_Extension
      * @param string $fileLinkFormat The format for links to source files
      * @param string $rootDir        The project root directory
      * @param string $charset        The charset
+     * @param array  $highlighters   The highlighters
      */
-    public function __construct($fileLinkFormat, $rootDir, $charset)
+    public function __construct($fileLinkFormat, $rootDir, $charset, $highlighters = array())
     {
         $this->fileLinkFormat = $fileLinkFormat ?: ini_get('xdebug.file_link_format') ?: get_cfg_var('xdebug.file_link_format');
         $this->rootDir = str_replace('/', DIRECTORY_SEPARATOR, dirname($rootDir)).DIRECTORY_SEPARATOR;
         $this->charset = $charset;
+        $this->highlighters = $highlighters;
     }
 
     /**
@@ -60,6 +65,7 @@ class CodeExtension extends \Twig_Extension
             new \Twig_SimpleFilter('format_file', array($this, 'formatFile'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('format_file_from_text', array($this, 'formatFileFromText'), array('is_safe' => array('html'))),
             new \Twig_SimpleFilter('file_link', array($this, 'getFileLink')),
+            new \Twig_SimpleFilter('file_line_count', array($this, 'getFileLineCount')),
         );
     }
 
@@ -150,19 +156,29 @@ class CodeExtension extends \Twig_Extension
      *
      * @return string An HTML string
      */
-    public function fileExcerpt($file, $line, $count = 3, $type = null)
+    public function fileExcerpt($file, $fromOrLine, $length = null, $line= null, $highlighter = null)
     {
         if (!is_readable($file)) {
             return;
         }
 
-        if (isset($this->highlighters[$type])) {
-            $highlighter = $this->highlighters[$type];
+        if (func_num_args() == 2) {
+            $from = $fromOrLine - 3;
+            $length = 6;
+            $line = $fromOrLine;
         } else {
-            $highlighter = 'twig' === $type ? new TwigHighlighter() : new PHPHighlighter();
+            $from = $fromOrLine;
         }
 
-        return $highlighter->highlight(file_get_contents($file), $line, $count);
+        if (isset($this->highlighters[$highlighter])) {
+            return $this->highlighters[$highlighter]->highlight(file_get_contents($file), $from, $length, $line);
+        }
+
+        foreach ($this->highlighters as $highlighter) {
+            if ($highlighter->supports($file)) {
+                return $highlighter->highlight(file_get_contents($file), $from, $length, $line);
+            }
+        }
     }
 
     /**
@@ -200,6 +216,23 @@ class CodeExtension extends \Twig_Extension
         }
 
         return $text;
+    }
+
+    public function getFileLineCount($file)
+    {
+        $count = null;
+        if (is_readable($file)) {
+            $count = 0;
+            $handle = fopen($file, 'r');
+            while (!feof($handle)) {
+                if (false !== fgets($handle)) {
+                    $count++;
+                }
+            }
+            fclose($handle);
+        }
+
+        return $count;
     }
 
     /**

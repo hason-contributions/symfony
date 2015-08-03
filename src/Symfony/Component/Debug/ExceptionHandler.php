@@ -38,7 +38,7 @@ class ExceptionHandler
     private $caughtLength;
     private $fileLinkFormat;
 
-    public function __construct($debug = true, $charset = null, $fileLinkFormat = null)
+    public function __construct($debug = true, $charset = null, $fileLinkFormat = null, $flattener = null)
     {
         if (false !== strpos($charset, '%')) {
             // Swap $charset and $fileLinkFormat for BC reasons

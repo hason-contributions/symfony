@@ -101,6 +101,7 @@
             <argument /> <!-- %templating.helper.code.file_link_format% -->
             <argument>%kernel.root_dir%</argument>
             <argument>%kernel.charset%</argument>
+            <argument type="collection" />
         </service>
 
         <service id="twig.extension.routing" class="%twig.extension.routing.class%" public="false">
@@ -154,7 +155,7 @@
             <tag name="monolog.logger" channel="request" />
             <argument>%twig.exception_listener.controller%</argument>
             <argument type="service" id="logger" on-invalid="null" />
-            <argument type="service" id="exception_flattener" on-invalid="null" />
+            <argument type="service" id="exception_flattener" on-invalid="ignore" />
         </service>
 
         <service id="twig.controller.exception" class="%twig.controller.exception.class%">
@@ -179,6 +180,14 @@
         <service id="twig.exception_processor" class="Symfony\Bridge\Twig\Debug\TwigFlattenExceptionProcessor" public="false">
             <tag name="exception.processor" />
             <argument type="service" id="twig" />
+        </service>
+
+        <service id="twig.php_highlighter" class="Symfony\Bridge\Twig\Debug\PHPHighlighter" public="false">
+            <tag name="code_highlighter" alias="php" />
+        </service>
+
+        <service id="twig.twig_highlighter" class="Symfony\Bridge\Twig\Debug\TwigHighlighter" public="false">
+            <tag name="code_highlighter" alias="twig" />
         </service>
     </services>
 </container>

@@ -27,7 +27,7 @@ abstract class Highlighter
      *
      * @return string The highlighted code
      */
-    abstract public function highlight($code, $line = -1, $count = -1);
+    abstract public function highlight($code, $from = 1, $to = -1, $line = -1);
 
     /**
      * Returns true if this class is able to highlight the given file name.
@@ -38,18 +38,15 @@ abstract class Highlighter
      */
     abstract public function supports($file);
 
-    protected function createLines($lines, $line, $count)
+    protected function createLines($lines, $start, $length, $line = null)
     {
         $code = '';
         $lastOpenSpan = '';
 
-        if ($count < 0) {
-            $count = count($lines);
-        }
-
-        $from = max(max($line, 1) - $count, 1);
-        if ($from > 1 && 0 !== strpos($line[$from - 1], '<span')) {
-            for ($i = $from - 2; $i >= 0; $i--) {
+        $slice = array_slice($lines, $start, $length, true);
+        $key = key($slice);
+        if (isset($lines[$key - 1]) && 0 !== strpos($lines[$key - 1], '<span')) {
+            for ($i = $key - 2; $i >= 0; $i--) {
                 if (isset($lines[$i]) && preg_match('#^.*(</?span[^>]*>)#', $lines[$i], $match) && '/' != $match[1][1]) {
                     $lastOpenSpan = $match[1];
                     break;
@@ -57,9 +54,10 @@ abstract class Highlighter
             }
         }
 
-        for ($i = $from, $max = min(max($line, 1) + $count, count($lines)); $i <= $max; $i++) {
-            $code .= '<li'.($i == $line ? ' class="selected"' : '').'><code>'.($lastOpenSpan.$lines[$i - 1]);
-            if (isset($lines[$i - 1]) && preg_match('#^.*(</?span[^>]*>)#', $lines[$i - 1], $match)) {
+        --$line;
+        foreach ($slice as $number => $content) {
+            $code .= '<li'.($number === $line ? ' class="selected"' : '').'><code>'.($lastOpenSpan.$content);
+            if (preg_match('#^.*(</?span[^>]*>)#', $content, $match)) {
                 $lastOpenSpan = '/' != $match[1][1] ? $match[1] : '';
             }
 
@@ -70,6 +68,6 @@ abstract class Highlighter
             $code .= "</code></li>\n";
         }
 
-        return '<ol class="code" start="'.max($line - $count, 1).'">'.$code.'</ol>';
+        return '<ol class="code" start="'.($key+1).'">'.$code.'</ol>';
     }
 }
