@@ -1,0 +1,52 @@
+.sf-exception {
+    font: 11px Verdana, Arial, sans-serif;
+    color: #AAA;
+    text-align: left;
+}
+.sf-exception .clear { clear:both; height:0; font-size:0; line-height:0; }
+.sf-exception .clear_fix:after { display:block; height:0; clear:both; visibility:hidden; }
+.sf-exception .clear_fix { display:inline-block; }
+.sf-exception * html .clear_fix { height:1%; }
+.sf-exception .clear_fix { display:block; }
+.sf-exception, .sf-exception .block { margin: auto }
+.sf-exception abbr { border-bottom: 1px dotted #FFF; cursor: help; }
+.sf-exception p { font-size:14px; line-height:20px; color:#AAA; padding-bottom:20px }
+.sf-exception strong { font-weight:bold; }
+.sf-exception a img { border:none; }
+.sf-exception a:hover { text-decoration:underline; }
+.sf-exception em { font-style:italic; }
+.sf-exception h1, .sf-exception h2 { font: 20px Georgia, "Times New Roman", Times, serif }
+.sf-exception .exception_counter { background-color: #444; color: #F5F5F5; padding: 6px; float: left; margin-right: 10px; float: left; display: block; }
+.sf-exception .exception_title { margin-left: 3em; margin-bottom: 0.7em; display: block; }
+.sf-exception .exception_message { margin-left: 3em; display: block; }
+.sf-exception .traces li { font-size:12px; padding: 2px 4px; list-style-type:decimal; margin-left:20px; }
+.sf-exception .block {
+    background-color:#222;
+    padding:10px 28px;
+    margin-bottom:20px;
+}
+.sf-exception .block_exception {
+    background-color: rgba(200, 43, 43, 1);
+    color: #FFF;
+    padding:20px;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+.sf-exception a {
+    background: none;
+    color: #99CDD8;
+    text-decoration: none;
+}
+.sf-exception a:hover {
+    background: none;
+    color: #99CDD8;
+    text-decoration: underline;
+}
+.sf-exception ol {
+    padding: 10px 0;
+}
+.sf-exception h1 {
+    background-color: rgba(200, 43, 43, 1);
+    color: #FFF;
+    padding: 15px 28px;
+}

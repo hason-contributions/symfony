@@ -93,7 +93,12 @@ class TwigFlattenExceptionProcessor implements FlattenExceptionProcessorInterfac
 
         $file = (object) array('name' => $name, 'type' => 'twig');
 
-        $path = $path ?: $this->twig->getLoader()->getCacheKey($name);
+        try {
+            $path = $path ?: $this->twig->getLoader()->getCacheKey($name);
+        } catch (\Twig_Error_Loader $e) {
+            throw $e;
+        }
+
         if (is_file($path)) {
             $file->path = $path;
         } else {

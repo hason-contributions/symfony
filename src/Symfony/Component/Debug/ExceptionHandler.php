@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Debug;
 
+use Symfony\Component\Debug\Utils\HtmlUtils;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Debug\Exception\FlattenException;
 use Symfony\Component\Debug\Exception\OutOfMemoryException;
@@ -37,8 +38,9 @@ class ExceptionHandler
     private $caughtBuffer;
     private $caughtLength;
     private $fileLinkFormat;
+    private $flattener;
 
-    public function __construct($debug = true, $charset = null, $fileLinkFormat = null, $flattener = null)
+    public function __construct($debug = true, $charset = null, $fileLinkFormat = null, ExceptionFlattener $flattener = null)
     {
         if (false !== strpos($charset, '%')) {
             // Swap $charset and $fileLinkFormat for BC reasons
@@ -49,6 +51,7 @@ class ExceptionHandler
         $this->debug = $debug;
         $this->charset = $charset ?: ini_get('default_charset') ?: 'UTF-8';
         $this->fileLinkFormat = $fileLinkFormat ?: ini_get('xdebug.file_link_format') ?: get_cfg_var('xdebug.file_link_format');
+        $this->flattener = $flattener;
     }
 
     /**
@@ -185,7 +188,7 @@ class ExceptionHandler
     public function sendPhpResponse($exception)
     {
         if (!$exception instanceof FlattenException) {
-            $exception = FlattenException::create($exception);
+            $exception = null !== $this->flattener ? $this->flattener->flatten($exception) : FlattenException::create($exception);
         }
 
         if (!headers_sent()) {
@@ -213,7 +216,7 @@ class ExceptionHandler
         @trigger_error('The '.__METHOD__.' method is deprecated since version 2.8 and will be removed in 3.0.', E_USER_DEPRECATED);
 
         if (!$exception instanceof FlattenException) {
-            $exception = FlattenException::create($exception);
+            $exception = null !== $this->flattener ? $this->flattener->flatten($exception) : FlattenException::create($exception);
         }
 
         return Response::create($this->decorate($this->getContent($exception), $this->getStylesheet($exception)), $exception->getStatusCode(), $exception->getHeaders())->setCharset($this->charset);
@@ -243,7 +246,7 @@ class ExceptionHandler
                 $total = $count + 1;
                 foreach ($exception->toArray() as $position => $e) {
                     $ind = $count - $position + 1;
-                    $class = $this->formatClass($e['class']);
+                    $class = HtmlUtils::abbrClass($e['class']);
                     $message = nl2br($this->escapeHtml($e['message']));
                     $content .= sprintf(<<<EOF
                         <h2 class="block_exception clear_fix">
@@ -252,17 +255,17 @@ class ExceptionHandler
                             <span class="exception_message">%s</span>
                         </h2>
                         <div class="block">
-                            <ol class="traces list_exception">
+                            <ol reversed="reversed" class="traces list_exception">
 
 EOF
                         , $ind, $total, $class, $this->formatPath($e['trace'][0]['file'], $e['trace'][0]['line']), $message);
                     foreach ($e['trace'] as $trace) {
                         $content .= '       <li>';
                         if ($trace['function']) {
-                            $content .= sprintf('at %s%s%s(%s)', $this->formatClass($trace['class']), $trace['type'], $trace['function'], $this->formatArgs($trace['args']));
+                            $content .= sprintf('%s%s%s(%s)', HtmlUtils::abbrClass($trace['class']), $trace['type'], $trace['function'], $this->formatArgs($trace['args']));
                         }
                         if (isset($trace['file']) && isset($trace['line'])) {
-                            $content .= $this->formatPath($trace['file'], $trace['line']);
+                            $content .= '<br>'.$this->formatPath($trace['file'], $trace['line']);
                         }
                         $content .= "</li>\n";
                     }
@@ -280,7 +283,7 @@ EOF
         }
 
         return <<<EOF
-            <div id="sf-resetcontent" class="sf-reset">
+            <div id="sf-exception-content" class="sf-exception">
                 <h1>$title</h1>
                 $content
             </div>
@@ -296,162 +299,16 @@ EOF;
      */
     public function getStylesheet(FlattenException $exception)
     {
-        return <<<EOF
-            .sf-reset { font: 11px Verdana, Arial, sans-serif; color: #333 }
-            .sf-reset .clear { clear:both; height:0; font-size:0; line-height:0; }
-            .sf-reset .clear_fix:after { display:block; height:0; clear:both; visibility:hidden; }
-            .sf-reset .clear_fix { display:inline-block; }
-            .sf-reset * html .clear_fix { height:1%; }
-            .sf-reset .clear_fix { display:block; }
-            .sf-reset, .sf-reset .block { margin: auto }
-            .sf-reset abbr { border-bottom: 1px dotted #000; cursor: help; }
-            .sf-reset p { font-size:14px; line-height:20px; color:#868686; padding-bottom:20px }
-            .sf-reset strong { font-weight:bold; }
-            .sf-reset a { color:#6c6159; cursor: default; }
-            .sf-reset a img { border:none; }
-            .sf-reset a:hover { text-decoration:underline; }
-            .sf-reset em { font-style:italic; }
-            .sf-reset h1, .sf-reset h2 { font: 20px Georgia, "Times New Roman", Times, serif }
-            .sf-reset .exception_counter { background-color: #fff; color: #333; padding: 6px; float: left; margin-right: 10px; float: left; display: block; }
-            .sf-reset .exception_title { margin-left: 3em; margin-bottom: 0.7em; display: block; }
-            .sf-reset .exception_message { margin-left: 3em; display: block; }
-            .sf-reset .traces li { font-size:12px; padding: 2px 4px; list-style-type:decimal; margin-left:20px; }
-            .sf-reset .block { background-color:#FFFFFF; padding:10px 28px; margin-bottom:20px;
-                -webkit-border-bottom-right-radius: 16px;
-                -webkit-border-bottom-left-radius: 16px;
-                -moz-border-radius-bottomright: 16px;
-                -moz-border-radius-bottomleft: 16px;
-                border-bottom-right-radius: 16px;
-                border-bottom-left-radius: 16px;
-                border-bottom:1px solid #ccc;
-                border-right:1px solid #ccc;
-                border-left:1px solid #ccc;
-            }
-            .sf-reset .block_exception { background-color:#ddd; color: #333; padding:20px;
-                -webkit-border-top-left-radius: 16px;
-                -webkit-border-top-right-radius: 16px;
-                -moz-border-radius-topleft: 16px;
-                -moz-border-radius-topright: 16px;
-                border-top-left-radius: 16px;
-                border-top-right-radius: 16px;
-                border-top:1px solid #ccc;
-                border-right:1px solid #ccc;
-                border-left:1px solid #ccc;
-                overflow: hidden;
-                word-wrap: break-word;
-            }
-            .sf-reset a { background:none; color:#868686; text-decoration:none; }
-            .sf-reset a:hover { background:none; color:#313131; text-decoration:underline; }
-            .sf-reset ol { padding: 10px 0; }
-            .sf-reset h1 { background-color:#FFFFFF; padding: 15px 28px; margin-bottom: 20px;
-                -webkit-border-radius: 10px;
-                -moz-border-radius: 10px;
-                border-radius: 10px;
-                border: 1px solid #ccc;
-            }
-EOF;
+        return file_get_contents(__DIR__.'/Resources/views/exception.css');
     }
 
     private function decorate($content, $css)
     {
-        return <<<EOF
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="{$this->charset}" />
-        <meta name="robots" content="noindex,nofollow" />
-        <style>
-            /* Copyright (c) 2010, Yahoo! Inc. All rights reserved. Code licensed under the BSD License: http://developer.yahoo.com/yui/license.html */
-            html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:text-top;}sub{vertical-align:text-bottom;}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit;}input,textarea,select{*font-size:100%;}legend{color:#000;}
-
-            html { background: #eee; padding: 10px }
-            img { border: 0; }
-            #sf-resetcontent { width:970px; margin:0 auto; }
-            $css
-        </style>
-    </head>
-    <body>
-        $content
-    </body>
-</html>
-EOF;
-    }
-
-    private function formatClass($class)
-    {
-        $parts = explode('\\', $class);
-
-        return sprintf('<abbr title="%s">%s</abbr>', $class, array_pop($parts));
-    }
-
-    private function formatPath($path, $line)
-    {
-        $path = $this->escapeHtml($path);
-        $file = preg_match('#[^/\\\\]*$#', $path, $file) ? $file[0] : $path;
-
-        if ($linkFormat = $this->fileLinkFormat) {
-            $link = strtr($this->escapeHtml($linkFormat), array('%f' => $path, '%l' => (int) $line));
-
-            return sprintf(' in <a href="%s" title="Go to source">%s line %d</a>', $link, $file, $line);
-        }
-
-        return sprintf(' in <a title="%s line %3$d" ondblclick="var f=this.innerHTML;this.innerHTML=this.title;this.title=f;">%s line %d</a>', $path, $file, $line);
-    }
-
-    /**
-     * Formats an array as a string.
-     *
-     * @param array $args The argument array
-     *
-     * @return string
-     */
-    private function formatArgs(array $args)
-    {
-        $result = array();
-        foreach ($args as $key => $item) {
-            if (is_array($item)) {
-                $formattedValue = $this->dumpVariable($item);
-            } elseif ($item instanceof \stdClass) {
-                $formattedValue = $this->dumpVariable(array_values((array) $item));
-            } elseif ($item instanceof Data) {
-                $dump = fopen('php://memory', 'r+b');
-                $dumper = new HtmlDumper($dump);
-                $dumper->dump($item);
-                rewind($dump);
-
-                $formattedValue = stream_get_contents($dump);
-            }
-
-            $result[] = is_int($key) ? $formattedValue : sprintf('$%s = %s', $key, $formattedValue);
-        }
-
-        return implode(', ', $result);
-    }
-
-    private function dumpVariable($item)
-    {
-        switch ($item[0]) {
-            case 'object':
-                return sprintf('<em>object</em>(%s)', $this->formatClass($item[1]));
-            case 'array':
-                $result = array();
-                foreach ((array) $item[1] as $key => $value) {
-                    $formattedValue = is_array($value) ? $this->dumpVariable($value) : $value;
-                    $result[] = is_int($key) ? $formattedValue : sprintf("'%s' => %s", $key, $formattedValue);
-                }
-
-                return sprintf('<em>array</em>(%s)', implode(', ', $result));
-            case 'string':
-                return sprintf("'%s'", $this->escapeHtml($item[1]));
-            case 'null':
-                return '<em>null</em>';
-            case 'boolean':
-                return '<em>'.strtolower(var_export($item[1], true)).'</em>';
-            case 'resource':
-                return '<em>resource</em>';
-            default:
-                return str_replace("\n", '', var_export($this->escapeHtml((string) $item[1]), true));
-        }
+        return strtr(file_get_contents(__DIR__.'/Resources/views/exception_full.html'), array(
+            '{{ charset }}' => $this->charset,
+            '{{ content }}' => $content,
+            '{{ css }}' => $css,
+        ));
     }
 
     /**

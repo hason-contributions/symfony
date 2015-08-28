@@ -1,4 +1,4 @@
-<div class="block">
+<div class="block" style="background: #222;">
     {% if count > 0 %}
         <h2>
             <span><small>[{{ count - position + 1 }}/{{ count + 1 }}]</small></span>
@@ -15,7 +15,7 @@
     {% endif %}
 
     <a id="traces-link-{{ position }}"></a>
-    <ol class="traces list-exception" id="traces-{{ position }}" style="display: {{ 0 == position ? 'block' : 'none' }}">
+    <ol reversed="reversed" class="traces list-exception" id="traces-{{ position }}" style="display: {{ 0 == position ? 'block' : 'none' }}">
         {% for i, trace in exception.trace %}
             <li class="{{ cycle(['odd', 'even'], loop.index0) }}">
                 {% include 'TwigBundle:Exception:trace.html.twig' with { 'exception': exception, 'prefix': position, 'i': i, 'trace': trace } only %}
